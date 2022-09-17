@@ -5,631 +5,537 @@
 #include <stdlib.h>
 #include <vector>
 
-// Every Object of this class represents one field on the tictactoe playboard
-
 extern int currentPlayer = 0;
-extern int startingPoint = 0;
 
 class field;
 std::array<field, 9> createField();
-bool hasLineTwoSymbols(std::array<field, 9> matchField, int x);
+std::string returnCurrentPlayerSymbol();
+std::string returnCurrentOpponentSymbol();
 void printField(std::array<field, 9> matchField);
-std::array<field, 9> changeFieldValue(std::array<field, 9> matchField);
-bool checkIfWon(std::array<field, 9> matchField);
-void CheckWinner(bool b, std::array<field, 9> matchField);
-std::string opponentSymbol();
-std::array<std::array<field, 3>, 8> allLines_(std::array<field, 9> matchField);
-int checkOpponent(std::array<field, 9> matchField);
-std::array<field,9> computerMoves(std::array<field, 9> matchField);
-bool isAgainstComputer();
 bool isFieldFree(field field);
-int isLineFreeMakeMove(std::array <field, 9> matchField);
-bool isLineFree(std::array<field, 9> matchField, int lineNumber);
-int makeWinningMove(std::array<field, 9> matchField);
-bool isLineFreeFromOpponent(std::array<field, 9> matchField, std::array<field, 3> line);
-std::vector<int> whereDoLinesCross(std::array<field, 9> matchField, std::vector<int> ownSymbols);
+int askForUserInput(std::array<field, 9> matchField);
+std::string checkWhoWon(std::array<field, 9> matchField);
+std::array<std::array<field, 3>, 8> allLines_(std::array<field, 9> matchField);
+int checkOpponentWinningMove(std::array<field, 9> matchField);
+int checkForWinningMove(std::array<field, 9> matchField);
+int computerMoves(std::array<field, 9> matchField);
+int makeMove(std::array<field, 9> matchField);
+int placeInRandomCorner(std::array<field, 9> matchField);
+int isOpponentInCriticalPosition(std::array<field, 9> matchField);
+std::vector<std::array<field, 3>> calculateLinesFromSymbol(std::array<field, 9> matchField, int symbolFieldNumber);
+std::vector<int> whereDoLinesCross(std::array<field, 9> matchField, std::vector<std::vector<std::array<field, 3>>> lines);
+std::vector<int> allSymbolPositions(std::array<field, 9> matchField);
+int bestWinningField(std::vector<int> whereLinesCross, std::array<field, 9> matchField);
+void clearScreen();
+bool isFieldFull(std::array<field, 9> matchField);
 
-
-class field{
+class field{ // declares the variables for one field
 
 private:
-    std::string value;
-    int number;
+    std::string value;  // The current symbol, which is on the field
+    int number; // the number of the field
 
 public:
-    field(){
+    field(){};
 
-    }
-    
-    field(int _number){
-
-        this->number = _number;
-        this->value = std::to_string(_number);
-    }
-    
-    std::string getValue(){
-
+    std::string getValue(){ // returns the value of the field
         return this->value;
     }
 
-    void setValue(std::string newValue){
-
+    void setValue(std::string newValue){ // sets the value of the field
         this->value = newValue;
     }
 
-    int getNumber(){
-
+    int getNumber(){    // returns the number of the field
         return this->number;
+    }
+
+    void setNumber(int newNumber){
+        this->number = newNumber;
+    }
+
+    void printValue(){
+        if (this->value == "X"){
+            std::cout << "\033[1;31mX\033[0m";
+        } else if (this->value == "O"){
+            std::cout << "\033[1;32mO\033[0m";
+        } else {
+            std::cout << getValue();
+        }
     }
 
 };
 
-std::array<field, 9> createField(){
+std::array<field, 9> createField(){ // creates the tic tac toe field
 
-    std::array<field , 9> matchField;
+    std::array<field, 9> matchField;
 
     for (int x = 0; x < matchField.size(); x++){
-
-        matchField[x] = field(x + 1);
+        matchField[x].setValue(std::to_string(x + 1));
+        matchField[x].setNumber(x);
     }
-
+    
     return matchField;
 }
 
-void printField(std::array<field, 9> matchField){
+std::string returnCurrentPlayerSymbol(){ // returns the symbol of the current player
 
-    std::cout << " " << matchField[0].getValue() << " | " << matchField[1].getValue() << " | " << matchField[2].getValue() << "\n";
-    std::cout << "------------ \n";
-    std::cout << " " << matchField[3].getValue() << " | " << matchField[4].getValue() << " | " << matchField[5].getValue() << "\n";
-    std::cout << "------------ \n";
-    std::cout << " " << matchField[6].getValue() << " | " << matchField[7].getValue() << " | " << matchField[8].getValue() << "\n";
+    std::string symbol;
+
+    if (currentPlayer == 0){ return "X";}
+    if (currentPlayer == 1){ return "O";}
+    if (currentPlayer % 2 == 0) { return "X";} else { return "O";}
+    
+    return symbol;
 }
 
-std::array<field, 9> changeFieldValue(std::array<field, 9> matchField){
+std::string returnCurrentOpponentSymbol(){ // return the symbol of the currents player opponent
 
-    std::string currentSymbol;
+    std::string symbol;
 
-    if (currentPlayer == 0) { currentSymbol = "X";}
-    if (currentPlayer == 1) { currentSymbol = "O";}
-    if ((currentPlayer % 2) == 0){ currentSymbol = "X";} else { currentSymbol = "O";}
+    if (currentPlayer == 0){ return "O";}
+    if (currentPlayer == 1){ return "X";}
+    if (currentPlayer % 2 == 0) { return "O";} else { return "X";}
     
-    int x; // Value on which field the symbol shall be set
-    bool isPlaceFree = false;
+    return symbol;
 
-    while (isPlaceFree == false){
+}
 
-        std::cout << "Enter number of the field to place symbol: \n";
-        std::cin >> x;
+void printField(std::array<field, 9> matchField){ // prints out the Matchfield in console
 
-        bool isValidInput = true;
+    std::cout << "\n";
+    std::cout << " "; matchField[0].printValue(); std::cout << " | "; matchField[1].printValue(); std::cout << " | "; matchField[2].printValue(); std::cout << "\n";
+    std::cout << "------------ \n";
+    std::cout << " "; matchField[3].printValue(); std::cout << " | "; matchField[4].printValue(); std::cout << " | "; matchField[5].printValue(); std::cout << "\n";
+    std::cout << "------------ \n";
+    std::cout << " "; matchField[6].printValue(); std::cout << " | "; matchField[7].printValue(); std::cout << " | "; matchField[8].printValue(); std::cout << "\n";
+    std::cout << "\n";
+}
 
-        if (x == 0 || x > 9) { std::cout << "Cant accept 0 or >9 as input \n"; } else {        
+bool isFieldFree(std::array<field, 9> matchField, int x){
 
-            if (matchField[x - 1].getValue() == "X" || matchField[x - 1].getValue() == "O"){
+    if (matchField[x].getValue() == "X" || matchField[x].getValue() == "O"){
+        return false;
+    } else {
+        return true;
+    }
+    
+}
 
-                std::cout << "A symbol is already placed on this field \n";
-            
-            } else {
+bool isFieldFree(field field){ // true if the field is asked for free
 
-                matchField[x - 1].setValue(currentSymbol);
-                isPlaceFree = true;
-            
-            }
+    if (field.getValue() == "X" || field.getValue() == "O"){
+        return false;
+    } else {
+        return true;
+    }
 
+}
+
+int askForUserInput(std::array<field, 9> matchField){ // validates the number of the field the user wants to place on and returns it if its valid
+
+    int userInput;
+
+    std::cout << "\nEnter fieldnumber to place: \n";
+    while(true){
+        std::cin >> userInput;
+        if (isFieldFree(matchField, userInput - 1)){
+            return userInput - 1;
         }
-        
+        std::cout << "Can not place on field. Enter fieldnumber: \n";
     }
-
-    isPlaceFree = false;
-    currentPlayer++;
-
-    return matchField;
 }
 
-bool checkIfWon(std::array<field, 9> matchField){
+std::string checkWhoWon(std::array<field, 9> matchField){ // checks if somebody has won
 
-    if (matchField[0].getValue() == matchField[1].getValue() && matchField[0].getValue() == matchField[2].getValue()){
+    bool over = true;
 
-        return true;
-    }
+    if (matchField[0].getValue() == matchField[1].getValue() && matchField[0].getValue() == matchField[2].getValue())
+    {return matchField[0].getValue();}
 
-    if (matchField[3].getValue() == matchField[4].getValue() && matchField[3].getValue() == matchField[5].getValue()){
+    if (matchField[3].getValue() == matchField[4].getValue() && matchField[3].getValue() == matchField[5].getValue())
+    {return matchField[3].getValue();}
 
-        return true;
-    }
+    if (matchField[6].getValue() == matchField[7].getValue() && matchField[6].getValue() == matchField[8].getValue())
+    {return matchField[6].getValue();}
+    
+    if (matchField[0].getValue() == matchField[4].getValue() && matchField[0].getValue() == matchField[8].getValue())
+    {return matchField[0].getValue();}
 
-    if (matchField[6].getValue() == matchField[7].getValue() && matchField[6].getValue() == matchField[8].getValue()){
+    if (matchField[2].getValue() == matchField[4].getValue() && matchField[2].getValue() == matchField[6].getValue())
+    {return matchField[2].getValue();}
 
-        return true;
-    }
+    if (matchField[0].getValue() == matchField[3].getValue() && matchField[0].getValue() == matchField[6].getValue())
+    {return matchField[0].getValue();}
 
-    if (matchField[0].getValue() == matchField[4].getValue() && matchField[0].getValue() == matchField[8].getValue()){
+    if (matchField[1].getValue() == matchField[4].getValue() && matchField[1].getValue() == matchField[7].getValue())
+    {return matchField[1].getValue();}
 
-        return true;
-    }
+    if (matchField[2].getValue() == matchField[5].getValue() && matchField[2].getValue() == matchField[8].getValue())
+    {return matchField[2].getValue();}
 
-    if (matchField[2].getValue() == matchField[4].getValue() && matchField[2].getValue() == matchField[6].getValue()){
-
-        return true;
-    }
-
-    if (matchField[0].getValue() == matchField[3].getValue() && matchField[0].getValue() == matchField[6].getValue()){
-
-        return true;
-    }
-
-    if (matchField[1].getValue() == matchField[4].getValue() && matchField[1].getValue() == matchField[7].getValue()){
-
-        return true;
-    }
-
-    if (matchField[2].getValue() == matchField[5].getValue() && matchField[2].getValue() == matchField[8].getValue()){
-
-        return true;
-    }
-
-    return false;
+    return "0";
 }
 
-void CheckWinner(bool b, std::array<field, 9> matchField){
-
-    if (currentPlayer == 9){
-
-    std::cout << "Nobody won!";
-    std::exit(0);
-    
-    }
-
-    if (b == true){
-
-    std::string currentSymbol;
-
-    if (currentPlayer == 0) { currentSymbol = "O";}
-    if (currentPlayer == 1) { currentSymbol = "X";}
-    if ((currentPlayer % 2) == 0){ currentSymbol = "O";} else { currentSymbol = "X";}
-
-    printField(matchField);
-
-    std::cout << currentSymbol << " WINS!";
-    
-    std::exit(0);
-    
-    }
-    
-}
-
-std::string opponentSymbol(){ // Call this method when its the one who is asking for OpponentSymbol has his turn
-
-    std::string currentSymbol;
-
-    if (currentPlayer == 0) { currentSymbol = "O";}
-    if (currentPlayer == 1) { currentSymbol = "X";}
-    if ((currentPlayer % 2) == 0){ currentSymbol = "O";} else { currentSymbol = "X";}
-
-    if (currentSymbol == "X"){
-
-        return "O";
-    
-    } else{
-
-        return "X";
-    }
-
-}
-
-std::array<std::array<field, 3>, 8> allLines_(std::array<field, 9> matchField){
-
-    std::array<field, 3> row1 = {matchField[1], matchField[2], matchField[3]};
-    std::array<field, 3> row2 = {matchField[4], matchField[5], matchField[6]};
-    std::array<field, 3> row3 = {matchField[7], matchField[8], matchField[9]};
-    std::array<field, 3> column1 = {matchField[1], matchField[4], matchField[7]};
-    std::array<field, 3> column2 = {matchField[2], matchField[5], matchField[8]};
-    std::array<field, 3> column3 = {matchField[3], matchField[6], matchField[9]};
-    std::array<field, 3> diagonal1 = {matchField[1], matchField[4], matchField[9]};
-    std::array<field, 3> diagonal2 = {matchField[3], matchField[4], matchField[7]};
+std::array<std::array<field, 3>, 8> allLines_(std::array<field, 9> matchField){ // return all lines on the field in an array
+//
+    std::array<field, 3> row1 = {matchField[0], matchField[1], matchField[2]};
+    std::array<field, 3> row2 = {matchField[3], matchField[4], matchField[5]}; // 1 -
+    std::array<field, 3> row3 = {matchField[6], matchField[7], matchField[8]};
+    std::array<field, 3> column1 = {matchField[0], matchField[3], matchField[6]}; // 3
+    std::array<field, 3> column2 = {matchField[1], matchField[4], matchField[7]};
+    std::array<field, 3> column3 = {matchField[2], matchField[5], matchField[8]};   
+    std::array<field, 3> diagonal1 = {matchField[0], matchField[4], matchField[8]}; // 6
+    std::array<field, 3> diagonal2 = {matchField[2], matchField[4], matchField[6]}; // 7
 
      std::array<std::array<field, 3>, 8> allLines = {row1, row2, row3, column1, column2, column3, diagonal1, diagonal2};
 
     return allLines;
 }
 
-int checkOpponent(std::array<field, 9> matchField){
-    
-    int opponentCouldPlaceHere;
-    int x;
+// FROM HERE BEGIN THE COMPUTER METHODS
 
-    std::string currentSymbol;
+int checkOpponentWinningMove(std::array<field, 9> matchField){ // the computer checks if his opponent can make a winning move
 
-    if (currentPlayer == 0) { currentSymbol = "O";}
-    if (currentPlayer == 1) { currentSymbol = "X";}
-    if ((currentPlayer % 2) == 0){ currentSymbol = "O";} else { currentSymbol = "X";}
-
+    int symbolCounter = 0;
     std::array<std::array<field, 3>, 8> allLines = allLines_(matchField);
+    bool lineHasOwnSymbol;
 
-    for (x = 0; x < allLines.size(); x++){
-        if (hasLineTwoSymbols(matchField, x) == true){
-            for (int y = 0; y < allLines[x].size(); y++){
-                    if (allLines[x][y].getValue() != "X" && allLines[x][y].getValue() != "O"){
-                        return allLines[x][y].getNumber(); // means true (opponent can place on this position and win)
-                    }
+    for (std::array<field, 3> line : allLines){
+        for (field field : line){
+            if (field.getValue() == returnCurrentOpponentSymbol()){
+                symbolCounter++;
+            }
+            if (field.getValue() == returnCurrentPlayerSymbol()){
+                symbolCounter--;
+            }
+        }
+        if (symbolCounter == 2){
+            for (field field : line){
+                if (field.getValue() != returnCurrentOpponentSymbol()){
+                    return field.getNumber();
                 }
             }
         }
-    
-    return 0; // means false (opponent can not place anywhere on board and win)
+        lineHasOwnSymbol;
+        symbolCounter = 0;
+    }
+    return -1;
 }
 
-bool hasLineTwoSymbols(std::array<field, 9> matchField, int x){
+int checkForWinningMove(std::array<field, 9> matchField){ // the computer checks if he can make a winning move
+
+    int symbolCounter = 0;
+    std::array<std::array<field, 3>, 8> allLines = allLines_(matchField);
+    
+    for (std::array<field, 3> line : allLines){
+        for (field field : line){
+            if (field.getValue() == returnCurrentPlayerSymbol()){
+                symbolCounter++;
+            }
+        }
+        if (symbolCounter == 2){
+            for (field field : line){
+                if (field.getValue() != returnCurrentOpponentSymbol() && field.getValue() != returnCurrentPlayerSymbol()){
+                    return field.getNumber();
+                }
+            }
+        }
+        symbolCounter = 0;
+    }
+    return -1;
+}
+
+int computerMoves(std::array<field, 9> matchField){ // the computer decides which move to make
+
+    if (checkForWinningMove(matchField) != -1){
+        return checkForWinningMove(matchField);
+    }
+
+    if (checkOpponentWinningMove(matchField) != -1){
+        return checkOpponentWinningMove(matchField);
+    }
+
+    if (isFieldFull(matchField)){
+        clearScreen();
+        printField(matchField);
+        std::cout << "\nNobody wins!\n"; 
+        std::exit(1);
+    }
+    return makeMove(matchField);
+}
+
+bool isFieldFull(std::array<field, 9> matchField){
+    
+    for (field field : matchField){
+        if (field.getValue() != "X" && field.getValue() != "O"){
+           
+           return false;
+        }
+    }
+
+    return true;
+}
+
+int makeMove(std::array<field, 9> matchField){ // the computer calculates the best move
+    
+    if (currentPlayer == 0){
+        return placeInRandomCorner(matchField);
+    }
+
+    if (currentPlayer == 1){
+        if (isOpponentInCriticalPosition(matchField) != -1){
+            return isOpponentInCriticalPosition(matchField);
+        } else {
+            return placeInRandomCorner(matchField);
+        }
+
+    }
+
+    if (allSymbolPositions(matchField).size() == 1){
+        return placeInRandomCorner(matchField);
+    }
+
+    std::vector<std::vector<std::array<field, 3>>> allSymbolsLines;
+
+    for (int position : allSymbolPositions(matchField)){
+        allSymbolsLines.push_back(calculateLinesFromSymbol(matchField, position));
+    }
+
+    return bestWinningField(whereDoLinesCross(matchField, allSymbolsLines), matchField);
+}
+
+std::vector<std::array<field, 3>> calculateLinesFromSymbol(std::array<field, 9> matchField, int symbolFieldNumber){ // assign at the top
 
     std::array<std::array<field, 3>, 8> allLines = allLines_(matchField);
+    std::vector<std::array<field, 3>> symbolsLines; // all lines going away from the symbol
+
+    for (std::array<field, 3> line : allLines){
+        for (field field : line){
+            if (field.getNumber() == symbolFieldNumber){
+                symbolsLines.push_back(line);
+            }
+        }
+    }
+
+    return symbolsLines;
+}
+
+bool isLineFreeFromEnemy(std::array<field, 3> line){ // assign at the top
+
+    for (field field : line){
+        if (field.getValue() == returnCurrentOpponentSymbol()){
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool isLineFree(std::array<field, 3> line){
 
     int counter = 0;
 
-    for (int z = 0; z < allLines[x].size(); z++){
-        if (allLines[x][z].getValue() == opponentSymbol()){
-
-            counter += 1;
+    for (field field : line){
+        if (field.getValue() == returnCurrentPlayerSymbol() || field.getValue() == returnCurrentOpponentSymbol()){
+            counter++;
         }
     }
 
-    if (counter == 2) {
-
-        return true;
-    }
-
-    return false;
-}
-
-bool isFieldFree(field field){
-
-    if (field.getValue() != "X" && field.getValue() != "O"){
-
-        return true;
-    }
-
-    return false;
-
-}
-
-std::array<field,9> computerMoves(std::array<field, 9> matchField){
-
-    std::string currentSymbol;
-    std::array<std::array<field, 3>, 8> allLines = allLines_(matchField);
-    std::array<int, 4> startingFields = {1, 3, 7, 9};
-
-    if (currentPlayer == 0) { currentSymbol = "O";}
-    if (currentPlayer == 1) { currentSymbol = "X";}
-    if ((currentPlayer % 2) == 0) { currentSymbol = "O";} else { currentSymbol = "X";}
-
-    srand(time(NULL));
-
-    if (currentPlayer == 0){
-
-        int chooseSlot = rand() % 4 + 1;
-        startingPoint = startingFields[chooseSlot - 1];
-        matchField[startingPoint].setValue(currentSymbol);
+    if (counter > 1){
         
-    } else {
-        
-        if (checkOpponent(matchField) != 0){ // If enemy Player can win in the next move (2 symbols in winning position)
-
-            matchField[checkOpponent(matchField)].setValue(currentSymbol); // sets his marker in the spot where enemy could have won
-            currentPlayer++;
-
-        } else {
-
-            if (currentPlayer == 1){
-            
-                srand(time(NULL));
-
-                bool canPlace = false;
-                bool one, two, three, four;
-
-                while (canPlace == false){
-                    
-                    int random = rand() % 4 + 1;
-                    int firstMove = startingFields[random - 1];
-
-                    if (isFieldFree(matchField[firstMove]) == true){
-
-                        matchField[firstMove].setValue(currentSymbol);
-                        canPlace = true;
-                        currentPlayer++;
-                    
-                    } else {
-
-                        switch(firstMove){
-
-                            case 1:
-                                one = true;
-                                break;
-                            
-                            case 2:
-                                two = true;
-                                break;
-
-                            case 3:
-                                three = true;
-                                break;
-
-                            case 4:
-                                four = true;
-                                break;
-
-                        }
-                    }
-                
-                    if (one == true && two == true && three == true && four == true){
-
-                        break;
-                    }
-
-                }            
-            
-            } else {
-                
-                
-                
-
-            }
-        }
-
+        return false;
     }
 
-    return matchField;
+    return true;
 }
 
-int isLineFreeMakeMove(std::array <field, 9> matchField){
+std::vector<int> whereDoLinesCross(std::array<field, 9> matchField, std::vector<std::vector<std::array<field, 3>>> lines){
 
-    std::string currentSymbol;
-    std::vector<int> ownSymbols; // Field where own symbol is on
-    std::vector<std::array<field, 3>> validLine; // All lines where the field from ownSymbols is a part of
-    std::vector<std::vector<std::array<field, 3>>> allValidLines;
+    std::vector<int> whereLinesCross;
+    bool isAlreadyInside;
+    std::vector<std::vector<int>> lineNumbers;
 
-    if (currentPlayer == 0) { currentSymbol = "O";}
-    if (currentPlayer == 1) { currentSymbol = "X";}
-    if ((currentPlayer % 2) == 0) { currentSymbol = "O";} else { currentSymbol = "X";}
-
-    std::array<std::array<field, 3>, 8> allLines = allLines_(matchField);
-
-    //save all fields where own marker is placed in vector "ownSymbols"
-    for (int x = 0; x < allLines.size(); x++){
-        for (int y = 0; y < allLines[x].size(); y++){
-            if (allLines[x][y].getValue() == currentSymbol){
-
-                ownSymbols.push_back(allLines[x][y].getNumber());
-            }
-        }
-    }
-
-    for (int fieldNumber : ownSymbols){ // for every fieldnumber where the symbol of the computer is stored
-        std::vector<std::array<field, 3>> validLine; // create a new vector where all valid lines should be stored for the current field number
-        for (int x = 0; x < allLines.size(); x++){   // iterate through the array where all lines are present
-            for (int y = 0; y < allLines[x].size(); y++){   // iterate through the line
-
-                if (allLines[x][y].getNumber() == fieldNumber && isLineFree(matchField, x)){ // when the field number is present in this line and the line is free of enemy symbol and own symbol. int x stands for the number of the line in the array allLines and should be passed so the function can check that exact line
-                    validLine.push_back(allLines[x]);   // add it to the valid line vector (because the line is valid and could be potential win)
-                }
-            
-            }
-        }
-        allValidLines.push_back(validLine); // all valid lines combined in a vector
-    }
-
-    if (ownSymbols.size() == 1){
-
-        std::vector <int> goodFieldsCanPlace;
-        std::array <int, 4> goodFields = {1, 3, 7, 9};
-        for (std::vector<std::array<field, 3>> validLine : allValidLines){
-            for (std::array<field, 3> line : validLine){
-                for (field field : line){
-                    switch(field.getNumber()){
-
-                        case 1:
-                            goodFieldsCanPlace.push_back(1);
-                            break;
-                        
-                        case 3:
-                            goodFieldsCanPlace.push_back(3);
-                            break;
-
-                        case 7:
-                            goodFieldsCanPlace.push_back(7);
-                            break;
-
-                        case 9:
-                            goodFieldsCanPlace.push_back(9);
-                            break;
-                        
-                        default:
-                            break;
-                    }
-                }
-            }
-        }
-
-        srand(time(NULL));
-
-        int decision = rand() % goodFieldsCanPlace.size() + 1;
-        return decision;
-        
-    } else {
-
-        return 0;
-    }
-    
-}
-
-std::vector<int> whereDoLinesCross(std::array<field, 9> matchField, std::vector<int> ownSymbols){
-
-    std::vector<std::vector<std::array<field, 3>>> allsymbolLines; // a vector for every symbols lines
-    std::vector<int> whereDoLinesCross;
-    std::array<std::array<field, 3>, 8> allLines = allLines_(matchField);
-
-    for (int symbol : ownSymbols){ // for every symbol on the matchField (only computers symbols)
-        std::vector<std::array<field, 3>> symbolLines; // make a new vector to save every line the symbol is in
-        for (std::array<field, 3> line : allLines){ // for every line in the array allLines
-            for (field matchfield : line){  // for every field number in the line
-                if (matchfield.getNumber() == symbol){  // check if the number of the symbol is in the line
-                    symbolLines.push_back(line);    // save the line in symbollines
-                }
-            }
-        }
-        allsymbolLines.push_back(symbolLines);
-    }
-
-    for (int i = 0; i < allsymbolLines.size() - 1; i++){
-        for (int j = 0; j < allsymbolLines[i].size(); j++){
-            for (int k = 0; k < allsymbolLines[i][j].size(); k++){
-        for (int a = i + 1; a < allsymbolLines.size(); a++){
-            for (int b = 0; b < allsymbolLines[a].size(); b++){
-                for (int c = 0; c < allsymbolLines[a][b].size(); c++){
-                    if (allsymbolLines[i][j][k].getNumber() == allsymbolLines[a][b][c].getNumber() && isLineFreeFromOpponent(matchField, allsymbolLines[a][b])){
-
-                                whereDoLinesCross.push_back(allsymbolLines[i][j][k].getNumber());
+    if (lines.size() > 1){
+        for (std::vector<std::array<field, 3>> symbol : lines){ 
+                std::vector<int> numbers;
+                for (std::array<field, 3> line : symbol){
+                    if(isLineFree(line)) {
+                        for (field field : line){
+                            if (numbers.size() == 0){
+                                numbers.push_back(field.getNumber());
+                            } else {
+                                for (int number : numbers){
+                                    if (number == field.getNumber()){
+                                        isAlreadyInside = true;
+                                    }
+                                }
+                                if (isAlreadyInside == false){
+                                    numbers.push_back(field.getNumber());
+                                }
+                                isAlreadyInside = false;
                             }
                         }
                     }
-                }  
-            }
+                }
+                if (!numbers.empty()){
+                    lineNumbers.push_back(numbers);
+                }
         }
-    }
-
-    return whereDoLinesCross;
-}
-
-bool isLineFreeFromOpponent(std::array<field, 9> matchField, std::array<field, 3> line){
-
-    std::string currentSymbol;
-    std::array<std::array<field, 3>, 8> allLines = allLines_(matchField);
-
-    if (currentPlayer == 0) { currentSymbol = "X";}
-    if (currentPlayer == 1) { currentSymbol = "O";}
-    if ((currentPlayer % 2) == 0){ currentSymbol = "X";} else { currentSymbol = "O";} 
-
-    for (field field : line){
-
-        if (field.getValue() == opponentSymbol()){
-
-            return false;
-        }
-    }
-
-    return true;
-}
-
-bool isLineFree(std::array<field, 9> matchField, int lineNumber){
-
-    std::string currentSymbol;
-
-    if (currentPlayer == 0) { currentSymbol = "X";}
-    if (currentPlayer == 1) { currentSymbol = "O";}
-    if ((currentPlayer % 2) == 0){ currentSymbol = "X";} else { currentSymbol = "O";}
-
-    std::array<std::array<field, 3>, 8> allLines = allLines_(matchField); 
-
-    for (int y = 0; y < allLines[lineNumber].size(); y++){
-
-        if (allLines[lineNumber][y].getValue() == opponentSymbol() || allLines[lineNumber][y].getValue() == currentSymbol){
-
-            return false;
-        }
-    }
-
-    return true;
-}
-
-int makeWinningMove(std::array<field, 9> matchField){ // function must be called before isLineFree()
-
-    int counter = 0;
-    std::string currentSymbol;
-
-    if (currentPlayer == 0) { currentSymbol = "O";}
-    if (currentPlayer == 1) { currentSymbol = "X";}
-    if ((currentPlayer % 2) == 0) { currentSymbol = "O";} else { currentSymbol = "X";}
-
-    std::array<std::array<field, 3>, 8> allLines = allLines_(matchField);
-
-    for (std::array<field, 3> line : allLines){
-        counter = 0;
-        for (field field : line){
-            
-            if (field.getValue() == currentSymbol){
-                
-                counter++;
-            }
-            if (field.getValue() == opponentSymbol()){
-                
-                counter--;
-            }
+    } else {
         
-        if (counter == 2){
-            
-            for (int x = 0; x < line.size(); x++){
-                
-                if (line[x].getValue() != "X" && line[x].getValue() != "O"){ // if field has not own symbol and opponent symbol as its value
+        return {};
+    }
 
-                    return line[x].getNumber();
+    for (int x = 0; x < lineNumbers.size() - 1; x++){
+        for (int y = 0; y < lineNumbers[x].size(); y++){
+    for (int a = x + 1; a < lineNumbers.size(); a++){
+        for (int b = 0; b < lineNumbers[a].size(); b++){
+            if (lineNumbers[x][y] == lineNumbers[a][b] && isFieldFree(matchField, lineNumbers[x][y])){
+                whereLinesCross.push_back(lineNumbers[x][y]);
+            }
+        }
+    }
+        }
+    }
+
+    return whereLinesCross;
+}
+
+int placeInRandomCorner(std::array<field, 9> matchField){
+
+    srand(time(NULL));
+    int goodStartingPositions[] = {0, 2, 6, 8};
+
+        while (true){
+            srand(time(NULL));
+            int startingField = rand() % 4;
+            if (isFieldFree(matchField[goodStartingPositions[startingField]])){
+                return goodStartingPositions[startingField];
+            }
+        }
+    
+}
+
+int isOpponentInCriticalPosition(std::array<field, 9> matchField){
+
+    std::array<int, 4> criticalPositions = {0, 2, 6, 8};
+    int arr1[] = {1, 3}, arr2[] = {1, 5}, arr3[] = {3, 7}, arr4[] = {5, 7};
+
+    for (int position : criticalPositions){
+        if (matchField[position].getValue() == returnCurrentOpponentSymbol()){
+            switch(position){
+                case 0:
+                    srand(time(NULL));
+                    return arr1[rand() % 2];
+                    break;
+                case 2:
+                    srand(time(NULL));
+                    return arr2[rand() % 2];
+                    break;
+                case 6:
+                    srand(time(NULL));
+                    return arr3[rand() % 2];
+                    break;
+                case 8:
+                    srand(time(NULL));
+                    return arr4[rand() % 2];
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
+    return -1;
+}
+
+std::vector<int> allSymbolPositions(std::array<field, 9> matchField){
+
+    std::vector<int> computersSymbols;
+
+    for (field field : matchField){
+        if (field.getValue() == returnCurrentPlayerSymbol()){
+            computersSymbols.push_back(field.getNumber());
+        }
+    }
+
+    return computersSymbols;
+}
+
+int bestWinningField(std::vector<int> whereLinesCross, std::array<field, 9> matchField){
+
+    std::array<std::array<field, 3>, 8> allLines = allLines_(matchField);
+    std::vector<int> computersSymbols;
+    bool isCrossingPointInside;
+    bool isComputerSymbolInside;
+    std::vector<std::vector<std::array<field, 3>>> potentialWinningSpots; // every crossing point -> every crossing points lines -> every crossing points line field
+
+    computersSymbols = allSymbolPositions(matchField);
+
+    for (int crossingPoint : whereLinesCross){
+        std::vector<std::array<field, 3>> crossingPointVectors;
+        for (int computerSpots : computersSymbols){
+            for (std::array<field, 3> line : allLines){
+                for (field field : line){
+                    if (field.getNumber() == crossingPoint){
+                        isCrossingPointInside = true;
+                    }
+                    if (field.getNumber() == computerSpots){
+                        isComputerSymbolInside = true;
+                    }
+                }
+                if (isCrossingPointInside && isComputerSymbolInside && isLineFreeFromEnemy(line)){
+                    crossingPointVectors.push_back(line);
                 }
             }
         }
+        if (crossingPointVectors.size() > 1){
+            return crossingPoint;
         }
     }
-
-    return 0;
 }
 
-//int makemove() --- calculate best move (see picture on desktop)
+void clearScreen(){
 
-bool isAgainstComputer(){
-
-    int decision;
-    bool isValidInput = false;
-    
-    std::cout << "1 - Play against computer \n";
-    std::cout << "2 - Play against human \n";
-
-    while (isValidInput == false){
-
-        std::cin >> decision;
-
-        if (decision != 1 && decision != 2){
-
-            std::cout << "Please enter 1 or 2 \n";
-    
-        } else {
-
-            isValidInput = true;
-        }
+    for (int x = 0; x < 100 ; x++){
+        std::cout << "\n";
     }
-
-    if (decision == 1) {
-
-        return true;
-        
-    } 
-
-    return false;
-           
 }
 
 int main(){
 
-    if (isAgainstComputer() == false){
-    
-        auto theField = createField();
-        
-        while (true){
-        
-        printField(theField);
-        theField = changeFieldValue(theField);
-        CheckWinner(checkIfWon(theField), theField);
+    auto field = createField();
+    int start;
 
+    srand(time(NULL));
+    start = rand() % 2 + 1;
+
+    while (true){
+        if (start == 1){
+            printField(field);
         }
-    
-    } else {
-
         
+        if (start % 2 == 0){
+            field[computerMoves(field)].setValue(returnCurrentPlayerSymbol());
+            clearScreen();
+            printField(field);
+            if (checkWhoWon(field) != "0"){
+                std::cout << checkWhoWon(field) << " WINS!\n";
+                printField(field);
+                break;
+            }
+            start++;
+            currentPlayer++;
+        } else {
+            field[askForUserInput(field)].setValue(returnCurrentPlayerSymbol());
+            if (checkWhoWon(field) != "0"){
+                std::cout << checkWhoWon(field) << " WINS!";
+                printField(field);
+                break;
+            }
+            start++;
+            currentPlayer++;
+        }
     }
-
 }
