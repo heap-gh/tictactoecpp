@@ -262,6 +262,7 @@ int computerMoves(std::array<field, 9> matchField){ // the computer decides whic
         std::cout << "\nNobody wins!\n"; 
         std::exit(1);
     }
+
     return makeMove(matchField);
 }
 
@@ -470,8 +471,24 @@ int bestWinningField(std::vector<int> whereLinesCross, std::array<field, 9> matc
     bool isCrossingPointInside;
     bool isComputerSymbolInside;
     std::vector<std::vector<std::array<field, 3>>> potentialWinningSpots; // every crossing point -> every crossing points lines -> every crossing points line field
-
     computersSymbols = allSymbolPositions(matchField);
+
+    if (whereLinesCross.empty()){
+        for (std::array<field, 3> line : allLines){
+            for (field field : line){
+                if (field.getValue() == returnCurrentPlayerSymbol() && isLineFreeFromEnemy(line)){
+                    srand(time(NULL));
+                    while (true){
+                        for (int x = 0; x < line.size(); x++){
+                            if (line[x].getValue() != "X" && line[x].getValue() != "O"){
+                                return line[x].getNumber();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     for (int crossingPoint : whereLinesCross){
         std::vector<std::array<field, 3>> crossingPointVectors;
@@ -525,6 +542,12 @@ int main(){
                 printField(field);
                 break;
             }
+            if (isFieldFull(field)){
+                clearScreen();
+                printField(field);
+                std::cout << "\nNobody wins!\n"; 
+                std::exit(1);
+            }
             start++;
             currentPlayer++;
         } else {
@@ -533,6 +556,12 @@ int main(){
                 std::cout << checkWhoWon(field) << " WINS!";
                 printField(field);
                 break;
+            }
+            if (isFieldFull(field)){
+                clearScreen();
+                printField(field);
+                std::cout << "\nNobody wins!\n"; 
+                std::exit(1);
             }
             start++;
             currentPlayer++;
