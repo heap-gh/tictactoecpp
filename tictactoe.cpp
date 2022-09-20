@@ -234,7 +234,7 @@ int checkForWinningMove(std::array<field, 9> matchField){ // the computer checks
                 symbolCounter++;
             }
         }
-        if (symbolCounter == 2){
+        if (symbolCounter >= 2){
             for (field field : line){
                 if (field.getValue() != returnCurrentOpponentSymbol() && field.getValue() != returnCurrentPlayerSymbol()){
                     return field.getNumber();
@@ -388,17 +388,22 @@ std::vector<int> whereDoLinesCross(std::array<field, 9> matchField, std::vector<
         return {};
     }
 
-    for (int x = 0; x < lineNumbers.size() - 1; x++){
-        for (int y = 0; y < lineNumbers[x].size(); y++){
-    for (int a = x + 1; a < lineNumbers.size(); a++){
-        for (int b = 0; b < lineNumbers[a].size(); b++){
-            if (lineNumbers[x][y] == lineNumbers[a][b] && isFieldFree(matchField, lineNumbers[x][y])){
-                whereLinesCross.push_back(lineNumbers[x][y]);
+    if (lineNumbers.size() > 1){
+
+        for (int x = 0; x < lineNumbers.size() - 1; x++){
+            for (int y = 0; y < lineNumbers[x].size(); y++){
+        for (int a = x + 1; a < lineNumbers.size(); a++){
+            for (int b = 0; b < lineNumbers[a].size(); b++){
+                if (lineNumbers[x][y] == lineNumbers[a][b] && isFieldFree(matchField, lineNumbers[x][y])){
+                    whereLinesCross.push_back(lineNumbers[x][y]);
+                }
+            }
+        }
             }
         }
     }
-        }
-    }
+
+    std::cout << "\nASDASDASDSDADSADSASDASDASDASDSDADSASDASDASDASDASDASDASD\n" << whereLinesCross.size();
 
     return whereLinesCross;
 }
@@ -464,6 +469,17 @@ std::vector<int> allSymbolPositions(std::array<field, 9> matchField){
     return computersSymbols;
 }
 
+int hasLineOneFreeField(std::array<field, 3> line){
+
+    for (field field : line){
+        if (field.getValue() != "X" && field.getValue() != "O"){
+            return field.getNumber();
+        }
+    }
+
+    return -1;
+}
+
 int bestWinningField(std::vector<int> whereLinesCross, std::array<field, 9> matchField){
 
     std::array<std::array<field, 3>, 8> allLines = allLines_(matchField);
@@ -485,6 +501,16 @@ int bestWinningField(std::vector<int> whereLinesCross, std::array<field, 9> matc
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+
+    if (whereLinesCross.empty()){
+        for (std::array<field, 3> line : allLines){
+            for (field field : line){
+                if (isFieldFree(field)){
+                    return field.getNumber();
                 }
             }
         }
